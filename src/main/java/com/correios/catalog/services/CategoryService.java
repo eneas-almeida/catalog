@@ -3,8 +3,8 @@ package com.correios.catalog.services;
 import com.correios.catalog.dtos.CategoryDto;
 import com.correios.catalog.dtos.CategoryInputDto;
 import com.correios.catalog.entities.Category;
-import com.correios.catalog.exceptions.DefaultException;
 import com.correios.catalog.apis.FakeStoreApi;
+import com.correios.catalog.exceptions.problems.EntityAlreadyExistsException;
 import com.correios.catalog.mappers.CategoryMapper;
 import com.correios.catalog.repositories.CategoryRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,10 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CategoryService {
-
     private static final Logger logger = LogManager.getLogger(CategoryService.class);
 
     @Autowired
@@ -43,12 +43,11 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<CategoryDto> findAll() throws DefaultException {
-        try {
-            // Síncrona
-            String strCategories = this.fakeStoreApi.getProducts().block();
-            List<Category> categories = parseCategory(strCategories);
-            logger.info(categories);
+    public List<CategoryDto> findAll() {
+        // Síncrona
+        String strCategories = this.fakeStoreApi.getProducts().block();
+        List<Category> categories = parseCategory(strCategories);
+        logger.info(categories);
 
 //             Assíncrona
 //             List<Category> categories = new ArrayList<>();
@@ -63,34 +62,31 @@ public class CategoryService {
 //                }
 //            );
 
-            List<Category> categoryEntityList = this.categoryRepository.findAll();
+        List<Category> categoryEntityList = this.categoryRepository.findAll();
 
-            List<CategoryDto> categoryDtoList = this.categoryMapper.toListDtos(categoryEntityList);
+        List<CategoryDto> categoryDtoList = this.categoryMapper.toListDto(categoryEntityList);
 
-            logger.info("Getting all categories");
+        logger.info("Getting all categories");
 
-            return categoryDtoList;
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw new DefaultException(e.getMessage());
-        }
+        return categoryDtoList;
     }
 
     @Transactional
-    public CategoryDto create(CategoryInputDto categoryInputDto) throws DefaultException {
-        try {
-            Category categoryEntity = this.categoryMapper.inputDtoToEntity(categoryInputDto);
+    public CategoryDto create(CategoryInputDto categoryInputDto) {
+        Optional<Category> optionalEntity = this.categoryRepository.findOneByTitle(categoryInputDto.getTitle());
 
-            this.categoryRepository.save(categoryEntity);
-
-            CategoryDto categoryDto = this.categoryMapper.toDto(categoryEntity);
-
-            logger.info("Creating category");
-
-            return categoryDto;
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw new DefaultException(e.getMessage());
+        if (optionalEntity.isPresent()) {
+            throw new EntityAlreadyExistsException("Category already exists");
         }
+
+        Category categoryEntity = this.categoryMapper.inputDtoToEntity(categoryInputDto);
+
+        this.categoryRepository.save(categoryEntity);
+
+        CategoryDto categoryDto = this.categoryMapper.toDto(categoryEntity);
+
+        logger.info("Creating category");
+
+        return categoryDto;
     }
 }

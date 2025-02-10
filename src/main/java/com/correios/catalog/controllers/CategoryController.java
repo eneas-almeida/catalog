@@ -11,29 +11,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/categories")
 public class CategoryController {
-
     @Autowired
     public CategoryService categoryService;
 
-    @GetMapping("/categories")
+    @GetMapping
     public ResponseEntity<List<CategoryDto>> handleFindAll() {
-        try {
-            List<CategoryDto> categories = categoryService.findAll();
-            return ResponseEntity.status(HttpStatus.OK).body(categories);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        List<CategoryDto> categories = categoryService.findAll();
+        return ResponseEntity.status(HttpStatus.OK).body(categories);
     }
 
-    @PostMapping("/categories")
+    @PostMapping
     public ResponseEntity<CategoryDto> handleCreate(@RequestBody CategoryInputDto categoryInputDto) {
-        try {
-            CategoryDto categoryDto = categoryService.create(categoryInputDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(categoryDto);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        CategoryDto categoryDto = categoryService.create(categoryInputDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoryDto);
     }
 }

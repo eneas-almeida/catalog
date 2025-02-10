@@ -24,7 +24,7 @@ public class CategoryMapper {
         return modelMapper.modelMapper().map(category, CategoryDto.class);
     }
 
-    public List<CategoryDto> toListDtos(List<Category> categories) {
+    public List<CategoryDto> toListDto(List<Category> categories) {
         return categories.stream().map(this::toDto).collect(Collectors.toList());
     }
 
