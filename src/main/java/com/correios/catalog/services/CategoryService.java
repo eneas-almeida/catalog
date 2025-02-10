@@ -5,6 +5,7 @@ import com.correios.catalog.dtos.CategoryInputDto;
 import com.correios.catalog.entities.Category;
 import com.correios.catalog.apis.FakeStoreApi;
 import com.correios.catalog.exceptions.problems.EntityAlreadyExistsException;
+import com.correios.catalog.exceptions.problems.EntityNotFoundException;
 import com.correios.catalog.mappers.CategoryMapper;
 import com.correios.catalog.repositories.CategoryRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,33 +35,13 @@ public class CategoryService {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private List<Category> parseCategory(String json) {
-        try {
-            return objectMapper.readValue(json, new TypeReference<List<Category>>(){});
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao parsear a resposta JSON", e);
-        }
-    }
-
     @Transactional(readOnly = true)
     public List<CategoryDto> findAll() {
-        // Síncrona
-        String strCategories = this.fakeStoreApi.getProducts().block();
-        List<Category> categories = parseCategory(strCategories);
-        logger.info(categories);
+        String strProdcuts = this.fakeStoreApi.getProducts().block();
 
-//             Assíncrona
-//             List<Category> categories = new ArrayList<>();
-//            this.fakeStoreApi.getProducts().subscribe(
-//                response -> {
-//                    logger.info(response);
-//                    categories.addAll(parseCategory(response));
-//                    logger.info(categories);
-//                },
-//                error -> {
-//                    logger.error("Erro ao buscar categorias da API", error);
-//                }
-//            );
+        List<Category> products = parseCategory(strProdcuts);
+
+        logger.info(products);
 
         List<Category> categoryEntityList = this.categoryRepository.findAll();
 
@@ -88,5 +69,28 @@ public class CategoryService {
         logger.info("Creating category");
 
         return categoryDto;
+    }
+
+    @Transactional(readOnly = true)
+    public CategoryDto findOneById(Long id) {
+        Optional<Category> optionalEntity = this.categoryRepository.findOneById(id);
+
+        if (optionalEntity.isEmpty()) {
+            throw new EntityNotFoundException("Category not exists");
+        }
+
+        CategoryDto categoryDto = this.categoryMapper.toDto(optionalEntity.get());
+
+        logger.info("Getting category by id");
+
+        return categoryDto;
+    }
+
+    private List<Category> parseCategory(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<Category>>(){});
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao parsear a resposta JSON", e);
+        }
     }
 }
